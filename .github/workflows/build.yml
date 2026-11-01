@@ -21,12 +21,23 @@ jobs:
           if [ -f project.godot ]; then
             echo "PROJ=." >> $GITHUB_ENV
           else
-            Z=$(find . -maxdepth 2 -name "*.zip" | head -1)
+            COUNT=$(find . -maxdepth 2 -name "*.zip" | wc -l)
+            find . -maxdepth 2 -name "*.zip"
+            if [ "$COUNT" -ne 1 ]; then
+              echo "ERROR: repo me exactly 1 zip honi chahiye, mili: $COUNT"
+              exit 1
+            fi
+            Z=$(find . -maxdepth 2 -name "*.zip")
             echo "Using zip: $Z"
             mkdir -p _game
             unzip -q "$Z" -d _game
             echo "PROJ=$(dirname "$(find _game -name project.godot | head -1)")" >> $GITHUB_ENV
           fi
+
+      - name: Stamp build number
+        run: |
+          sed -i "s/BUILD_ID/${{ github.run_number }}/" "$PROJ/scripts/main.gd"
+          grep -n "const BUILD" "$PROJ/scripts/main.gd"
 
       - name: Setup Godot, templates, keystore
         run: |
@@ -51,8 +62,6 @@ jobs:
           export/android/shutdown_adb_on_exit = true
           EOF
           done
-          ls ~/.config/godot/
-          head -5 ~/.config/godot/editor_settings-4.3.tres
 
       - name: Run rule tests
         run: |
